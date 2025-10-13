@@ -1,23 +1,16 @@
+import numpy as np
 from real.realsenseD415 import Camera
+import cv2
 
-
-
-        # 设备对象（相机刚性固定在末端，存在相对位置）
-        self.robot = robot
-        self.camera = camera  # Realsense深度相机
-
-        # 调试模式（优先初始化，确保加载参数时可用）
-        self.debug = True
-
-        # 1. 加载核心标定参数（相机内参 + cam2end变换矩阵）
-        self.camera_matrix, self.dist_coeffs = self.load_camera_params(camera_params_path)
-        self.cam2end, self.end2cam = self.load_cam2end_from_txt(cam2end_txt_path)
-        print("✅ 加载完成：相机内参 + 相机→末端变换矩阵(cam2end)")
+class yolo_seg():
+    
+    def __init__(self,
+                 yolo_model_path: str | Path):
 
         # 2. 加载YOLO目标检测模型
-        self.yolo_model = YOLO(yolo_model_path)
+        self.yolo_model = yolo_model_path
 
-        # 3. 目标检测与位姿计算配置
+            # 3. 目标检测与位姿计算配置
         self.target_class_id = 1  # 目标类别ID（需与YOLO训练标签对应）
         self.conf_threshold = 0.3  # 检测置信度阈值
         self.iou_threshold = 0.3  # IOU阈值（过滤重复检测框）
@@ -36,24 +29,7 @@ from real.realsenseD415 import Camera
         self.center_inner_thickness = -1  # 内圆填充（-1表示填充）
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def yolo_detect_target(self, color_image):
+    def yolo_detect_target(self, color_image):
         display_img = color_image.copy()
         target_center = None
         self.found_target = False
@@ -104,16 +80,15 @@ def yolo_detect_target(self, color_image):
                             cY = int(M["m01"] / M["m00"])
                             target_center = (cX, cY)
                             self.last_target_center = target_center  # 实时更新中心点
-
-                            # 可视化：中心点双圆标记
+                                # 可视化：中心点双圆标记
                             cv2.circle(display_img, (cX, cY), self.center_outer_radius,
-                                       self.center_outer_color, self.center_outer_thickness)
+                                        self.center_outer_color, self.center_outer_thickness)
                             cv2.circle(display_img, (cX, cY), self.center_inner_radius,
-                                       self.center_inner_color, self.center_inner_thickness)
+                                        self.center_inner_color, self.center_inner_thickness)
                             cv2.putText(display_img, f"Center:({cX},{cY})",
                                         (cX + 15, cY - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
-            # 若无掩码（仅目标检测框），用框中心近似
+                # 若无掩码（仅目标检测框），用框中心近似
             elif result.boxes is not None and len(result.boxes) > 0:
                 for idx, (box, cls, conf) in enumerate(zip(result.boxes.xyxy, result.boxes.cls, result.boxes.conf)):
                     cls_id = int(cls)
@@ -130,10 +105,10 @@ def yolo_detect_target(self, color_image):
                     # 可视化：边界框+中心点
                     cv2.rectangle(display_img, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
                     cv2.circle(display_img, (cX, cY), self.center_outer_radius,
-                               self.center_outer_color, self.center_outer_thickness)
+                            self.center_outer_color, self.center_outer_thickness)
                     cv2.circle(display_img, (cX, cY), self.center_inner_radius,
-                               self.center_inner_color, self.center_inner_thickness)
+                            self.center_inner_color, self.center_inner_thickness)
 
         except Exception as e:
             print(f"❌ 目标检测出错: {str(e)}")
-        return display_img, target_center
+        return display_img, target_center        

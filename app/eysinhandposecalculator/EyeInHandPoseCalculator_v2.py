@@ -59,27 +59,6 @@ class EyeInHandPoseCalculator:
         self.conf = conf_thresh
         self.roi = depth_roi
 
-        # 4. 一个简单的“YOLO”占位（用户可替换为 ultralytics）
-        self.net = cv2.dnn.readNetFromONNX(str(Path(__file__).with_name('yolo5n.onnx')))
-        self.names = ['obj']  # 仅演示，真实请给 names.txt
-
-    # ---- 可替换的检测接口 ----
-    def detect(self, color: np.ndarray) -> Optional[Tuple[int, int]]:
-        """
-        返回目标像素中心 (u,v)，未检出返回 None
-        这里用 COCO-SSD 演示，用户可换成 ultralytics.YOLO
-        """
-        blob = cv2.dnn.blobFromImage(color, 1/255., (640, 640), swapRB=True)
-        self.net.setInput(blob)
-        preds = self.net.forward()[0]  # 1×25200×85
-        best = None
-        best_conf = self.conf
-        for det in preds:
-            x, y, w, h, conf, cls = det[0], det[1], det[2], det[3], det[4], int(det[5])
-            if cls == self.target_id and conf > best_conf:
-                best_conf = conf
-                best = (int(x), int(y))
-        return best
 
     # ---- 深度滤波 ----
     def _query_depth(self, depth: np.ndarray, u: int, v: int) -> Optional[float]:
@@ -104,16 +83,13 @@ class EyeInHandPoseCalculator:
         return np.array([x, y, z], dtype=np.float64)
 
     # ---- 主入口 ----
-    def call(self, color: np.ndarray, depth: np.ndarray,
+    def call(self,  target_center: tuple, depth: np.ndarray,
              T_end2base: np.ndarray) -> Optional[Dict[str, Any]]:
         """
         T_end2base: 当前时刻 4×4 末端->基座齐次矩阵（由机器人 SDK 给出）
         返回:  {position: (x,y,z), orientation: (rx,ry,rz)}  全部基座系/弧度
         """
-        center = self.detect(color)
-        if center is None:
-            return None
-        u, v = center
+        u, v = target_center
         z = self._query_depth(depth, u, v)
         if z is None:
             return None
@@ -142,11 +118,11 @@ if __name__ == '__main__':
 
     cap = cv2.VideoCapture(0)
     while True:
-        ret, color = cap.read()
+        ret, target_center = cap.read()
         if not ret:
             break
         depth = np.random.randint(200, 1500, (480, 640), dtype=np.uint16)  # 伪深度
-        res = calc.call(color, depth, T_end2base)
+        res = calc.call(target_center, depth, T_end2base)
         print(res)
         cv2.imshow('color', color)
         if cv2.waitKey(1) & 0xFF == ord('q'):
