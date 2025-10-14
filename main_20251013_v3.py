@@ -35,6 +35,12 @@ def main():
         
         # 目标检测
         display_img, target_center = yolo.yolo_detect_target(color_image)
+        
+        #存在问题！！！！#
+        
+        imshow = cv2.resize(display_img, (960, 720))
+        cv2.imshow("yolo_detect", imshow)
+        
         yolo.last_target_center = target_center  # 保存中心点
         print("目标检测完成...")
         print("target_center")

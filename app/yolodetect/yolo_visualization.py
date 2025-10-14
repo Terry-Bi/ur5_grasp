@@ -22,7 +22,8 @@ def yolo_draw(display_img, mask_np, cX, cY):
                     center_inner_color, center_inner_thickness)
         cv2.putText(display_img, f"Center:({cX},{cY})",
                     (cX + 15, cY - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-
+        return display_img
+    
         # 若无掩码（仅目标检测框），用框中心近似
     elif mask_np is None:
             # 可视化：边界框+中心点
@@ -31,5 +32,4 @@ def yolo_draw(display_img, mask_np, cX, cY):
                 center_outer_color, center_outer_thickness)
         cv2.circle(display_img, (cX, cY), center_inner_radius,
                 center_inner_color, center_inner_thickness)
-    
-    return 0
+        return display_img
