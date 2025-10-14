@@ -1,9 +1,6 @@
 import numpy as np
 from real.realsenseD415 import Camera
-import cv2
-import sys 
-sys.path.append("..")
-import visualization.yolo_visualization
+import yolo_visualization
 
 
 class yolo_seg():
@@ -76,7 +73,7 @@ def yolo_detect_target(self, color_image):
                         target_center = (cX, cY)
                         self.last_target_center = target_center  # 实时更新中心点
                             # 可视化：中心点双圆标记
-            yolo_draw(display_img, mask_np, cX, cY)            
+            yolo_visualization.yolo_draw(display_img, mask_np, cX, cY)            
 
             # 若无掩码（仅目标检测框），用框中心近似
         elif result.boxes is not None and len(result.boxes) > 0:
@@ -91,14 +88,8 @@ def yolo_detect_target(self, color_image):
                 cY = int((y1 + y2) / 2)
                 target_center = (cX, cY)
                 self.last_target_center = target_center
-
-                # 可视化：边界框+中心点
-                cv2.rectangle(display_img, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
-                cv2.circle(display_img, (cX, cY), self.center_outer_radius,
-                           self.center_outer_color, self.center_outer_thickness)
-                cv2.circle(display_img, (cX, cY), self.center_inner_radius,
-                           self.center_inner_color, self.center_inner_thickness)
-
+            yolo_visualization.yolo_draw(display_img, mask_np, cX, cY)  
+            
     except Exception as e:
         print(f"❌ 目标检测出错: {str(e)}")
     return display_img, target_center        

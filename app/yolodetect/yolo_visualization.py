@@ -8,7 +8,7 @@ center_inner_color = (0, 255, 255)  # 内圆颜色（黄色）
 center_outer_thickness = 2  # 外圆线宽
 center_inner_thickness = -1  # 内圆填充（-1表示填充）
 
-def yolo_draw(color_image, mask_np, cX, cY):
+def yolo_draw(display_img, mask_np, cX, cY):
 # 优先使用语义分割掩码（更精准的中心点计算）
     if mask_np is not None:
         # 可视化：半透明掩码
@@ -24,7 +24,7 @@ def yolo_draw(color_image, mask_np, cX, cY):
                     (cX + 15, cY - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
         # 若无掩码（仅目标检测框），用框中心近似
-    elif result.masks is None:
+    elif mask_np is None:
             # 可视化：边界框+中心点
         cv2.rectangle(display_img, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
         cv2.circle(display_img, (cX, cY), center_outer_radius,
