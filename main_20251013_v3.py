@@ -18,10 +18,10 @@ def main():
             is_use_robot=True,
             is_use_camera=True
         )
-    camera = Camera(width=640, height=480, fps=30)
+    camera = Camera(width=640, height=480)
     
     yolo = yolo_seg('seg_arm_body_20251010_zhoutaobi')  
-  
+    
    #导入相机参数、转换矩阵
     calc = EyeInHandPoseCalculator('camera.yaml', 'cam2end.txt')
     
@@ -36,8 +36,8 @@ def main():
         # 目标检测
         display_img, target_center = yolo.yolo_detect_target(color_image)
         
-        #存在问题！！！！#
         
+        #存在问题！！！！#
         imshow = cv2.resize(display_img, (960, 720))
         cv2.imshow("yolo_detect", imshow)
         
