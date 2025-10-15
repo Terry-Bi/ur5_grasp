@@ -1,17 +1,18 @@
 import numpy as np
-from real.realsenseD415 import Camera
 import cv2
-import yolo_visualization
-
-
+from ultralytics import YOLO
+from pathlib import Path
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from yolo_visualization import yolo_draw
 class yolo_seg():
     
     def __init__(self,
-                 yolo_model_path: str | Path):
-
+                 yolo_model_path):
+        
         # 2. 加载YOLO目标检测模型
-        self.yolo_model = yolo_model_path
-
+        self.yolo_model = YOLO(yolo_model_path)
+        
             # 3. 目标检测与位姿计算配置
         self.target_class_id = 1  # 目标类别ID（需与YOLO训练标签对应）
         self.conf_threshold = 0.3  # 检测置信度阈值
@@ -32,68 +33,68 @@ class yolo_seg():
 
 
 
-def yolo_detect_target(self, color_image):
-    display_img = color_image.copy()
-    target_center = None
-    self.found_target = False
+    def yolo_detect_target(self, color_image):
+        display_img = color_image.copy()
+        target_center = None
+        self.found_target = False
 
-    try:
-        # YOLO推理（静默模式）
-        results = self.yolo_model(
-            color_image,
-            conf=self.conf_threshold,
-            iou=self.iou_threshold,
-            verbose=False,
-            imgsz=640
-        )
-        result = results[0]
-        mask_np = None
-        # 优先使用语义分割掩码（更精准的中心点计算）
-        if result.masks is not None:
-            # 遍历所有检测结果，筛选目标类别
-            for idx, (mask, cls, conf) in enumerate(zip(result.masks.data, result.boxes.cls, result.boxes.conf)):
-                cls_id = int(cls)
-                confidence = float(conf)
-                if cls_id != self.target_class_id:
-                    continue
-                self.found_target = True
+        try:
+            # YOLO推理（静默模式）
+            results = self.yolo_model(
+                color_image,
+                conf=self.conf_threshold,
+                iou=self.iou_threshold,
+                verbose=False,
+                imgsz=640
+            )
+            result = results[0]
+            mask_np = None
+            # 优先使用语义分割掩码（更精准的中心点计算）
+            if result.masks is not None:
+                # 遍历所有检测结果，筛选目标类别
+                for idx, (mask, cls, conf) in enumerate(zip(result.masks.data, result.boxes.cls, result.boxes.conf)):
+                    cls_id = int(cls)
+                    confidence = float(conf)
+                    if cls_id != self.target_class_id:
+                        continue
+                    self.found_target = True
 
-                # 掩码后处理（适配原图尺寸）
-                mask_np = mask.cpu().numpy().astype(np.uint8) * 255
-                if mask_np.shape != (color_image.shape[0], color_image.shape[1]):
-                    mask_np = cv2.resize(mask_np, (color_image.shape[1], color_image.shape[0]))
+                    # 掩码后处理（适配原图尺寸）
+                    mask_np = mask.cpu().numpy().astype(np.uint8) * 255
+                    if mask_np.shape != (color_image.shape[0], color_image.shape[1]):
+                        mask_np = cv2.resize(mask_np, (color_image.shape[1], color_image.shape[0]))
 
-                # 计算掩码的中心（轮廓矩方法，抗偏移）
-                contours, _ = cv2.findContours(mask_np, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                if contours:
-                    largest_contour = max(contours, key=cv2.contourArea)
-                    M = cv2.moments(largest_contour)
-                    if M["m00"] > 0:  # 避免除以0（轮廓面积不为0）
-                        cX = int(M["m10"] / M["m00"])
-                        cY = int(M["m01"] / M["m00"])
-                        target_center = (cX, cY)
-                        self.last_target_center = target_center  # 实时更新中心点
-                            # 可视化：中心点双圆标记
-            display_img = yolo_visualization.yolo_draw(display_img, mask_np, cX, cY)            
-            return display_img, target_center 
-        
-            # 若无掩码（仅目标检测框），用框中心近似
-        elif result.boxes is not None and len(result.boxes) > 0:
-            for idx, (box, cls, conf) in enumerate(zip(result.boxes.xyxy, result.boxes.cls, result.boxes.conf)):
-                cls_id = int(cls)
-                confidence = float(conf)
-                if cls_id != self.target_class_id:
-                    continue
-                self.found_target = True
-                x1, y1, x2, y2 = box.cpu().numpy()
-                cX = int((x1 + x2) / 2)
-                cY = int((y1 + y2) / 2)
-                target_center = (cX, cY)
-                self.last_target_center = target_center
-            display_img = yolo_visualization.yolo_draw(display_img, mask_np, cX, cY)  
+                    # 计算掩码的中心（轮廓矩方法，抗偏移）
+                    contours, _ = cv2.findContours(mask_np, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    if contours:
+                        largest_contour = max(contours, key=cv2.contourArea)
+                        M = cv2.moments(largest_contour)
+                        if M["m00"] > 0:  # 避免除以0（轮廓面积不为0）
+                            cX = int(M["m10"] / M["m00"])
+                            cY = int(M["m01"] / M["m00"])
+                            target_center = (cX, cY)
+                            self.last_target_center = target_center  # 实时更新中心点
+                                # 可视化：中心点双圆标记
+                display_img = yolo_visualization.yolo_draw(display_img, mask_np, cX, cY)            
+                return display_img, target_center 
             
-            return display_img, target_center 
-        
-    except Exception as e:
-        print(f"❌ 目标检测出错: {str(e)}")
-    return display_img, target_center        
+                # 若无掩码（仅目标检测框），用框中心近似
+            elif result.boxes is not None and len(result.boxes) > 0:
+                for idx, (box, cls, conf) in enumerate(zip(result.boxes.xyxy, result.boxes.cls, result.boxes.conf)):
+                    cls_id = int(cls)
+                    confidence = float(conf)
+                    if cls_id != self.target_class_id:
+                        continue
+                    self.found_target = True
+                    x1, y1, x2, y2 = box.cpu().numpy()
+                    cX = int((x1 + x2) / 2)
+                    cY = int((y1 + y2) / 2)
+                    target_center = (cX, cY)
+                    self.last_target_center = target_center
+                display_img = yolo_visualization.yolo_draw(display_img, mask_np, cX, cY)  
+                
+                return display_img, target_center 
+            
+        except Exception as e:
+            print(f"❌ 目标检测出错: {str(e)}")
+        return display_img, target_center        

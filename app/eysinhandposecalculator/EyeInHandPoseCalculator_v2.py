@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 from pathlib import Path
 from typing import Tuple, Dict, Any, Optional
+from scipy.spatial.transform import Rotation as R
 
 # ---------- 工具 ----------
 def rvec_to_R(rvec: np.ndarray) -> np.ndarray:
@@ -25,6 +26,19 @@ def T_inv(T: np.ndarray) -> np.ndarray:
     Tinv[:3, :3] = R.T
     Tinv[:3, 3] = -R.T @ t
     return Tinv
+
+def vec2hom4x4(vec):
+    """
+    vec: 长度 7  (x,y,z,qx,qy,qz,qw)  四元数
+    返回 4×4 齐次矩阵
+    """
+    t = vec[:3]
+    quat = vec[3:7]
+    rot = R.from_quat(quat).as_matrix()
+    T = np.eye(4)
+    T[:3, :3] = rot
+    T[:3, 3]  = t
+    return T
 
 # ---------- 核心 ----------
 class EyeInHandPoseCalculator:
@@ -89,6 +103,9 @@ class EyeInHandPoseCalculator:
         T_end2base: 当前时刻 4×4 末端->基座齐次矩阵（由机器人 SDK 给出）
         返回:  {position: (x,y,z), orientation: (rx,ry,rz)}  全部基座系/弧度
         """
+
+        print('T_end2base shape:', T_end2base.shape)
+        
         u, v = target_center
         z = self._query_depth(depth, u, v)
         if z is None:
