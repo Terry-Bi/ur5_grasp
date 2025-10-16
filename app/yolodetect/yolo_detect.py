@@ -49,6 +49,7 @@ class yolo_seg():
             )
             result = results[0]
             mask_np = None
+            
             # 优先使用语义分割掩码（更精准的中心点计算）
             if result.masks is not None:
                 # 遍历所有检测结果，筛选目标类别
@@ -74,12 +75,12 @@ class yolo_seg():
                             cY = int(M["m01"] / M["m00"])
                             target_center = (cX, cY)
                             self.last_target_center = target_center  # 实时更新中心点
-                                # 可视化：中心点双圆标记
-                display_img = yolo_visualization.yolo_draw(display_img, mask_np, cX, cY)            
-                return display_img, target_center 
-            
-                # 若无掩码（仅目标检测框），用框中心近似
-            elif result.boxes is not None and len(result.boxes) > 0:
+                            # 可视化：中心点双圆标记
+                            display_img = yolo_draw(display_img, mask_np, cX, cY)            
+                            return display_img, target_center 
+                
+            # 若无掩码（仅目标检测框），用框中心近似
+            if result.boxes is not None and len(result.boxes) > 0:
                 for idx, (box, cls, conf) in enumerate(zip(result.boxes.xyxy, result.boxes.cls, result.boxes.conf)):
                     cls_id = int(cls)
                     confidence = float(conf)
@@ -91,10 +92,13 @@ class yolo_seg():
                     cY = int((y1 + y2) / 2)
                     target_center = (cX, cY)
                     self.last_target_center = target_center
-                display_img = yolo_visualization.yolo_draw(display_img, mask_np, cX, cY)  
-                
-                return display_img, target_center 
+                    display_img = yolo_draw(display_img, mask_np, cX, cY)  
+                    return display_img, target_center 
             
+            # 如果没有检测到目标，返回原始图像和None
+            return display_img, target_center 
+                
         except Exception as e:
-            print(f"❌ 目标检测出错: {str(e)}")
-        return display_img, target_center        
+            # 异常情况下也返回两个值
+            print(f"YOLO检测出错: {e}")
+            return display_img, None
