@@ -3,8 +3,10 @@ import cv2
 from ultralytics import YOLO
 from pathlib import Path
 import os, sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from yolo_visualization import yolo_draw
+
 class yolo_seg():
     
     def __init__(self,
